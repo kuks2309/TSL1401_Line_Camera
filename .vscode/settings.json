@@ -22,9 +22,9 @@
         "editor.defaultFormatter": "ms-vscode.cpptools"
     },
     
-    "arduino.path": "",
-    "arduino.commandPath": "arduino-cli",
+    "arduino.path": "/opt/arduino",
     "arduino.additionalUrls": [],
     "arduino.logLevel": "info",
-    "arduino.enableUSBDetection": true
+    "arduino.enableUSBDetection": true,
+    "arduino.useArduinoCli": false
 }

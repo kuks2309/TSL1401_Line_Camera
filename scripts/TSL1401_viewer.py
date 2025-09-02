@@ -27,6 +27,7 @@ class TSL1401Viewer:
         self.pixels = pixels
         self.pixel_data = np.zeros(pixels)
         self.serial_port = None
+        self.ani = None
         
         # 시리얼 포트 연결
         if port is None:
@@ -50,10 +51,11 @@ class TSL1401Viewer:
         """Arduino 포트 자동 탐색"""
         ports = serial.tools.list_ports.comports()
         for port in ports:
-            # Arduino 관련 키워드 확인
-            if any(keyword in port.description.lower() 
-                   for keyword in ['arduino', 'ch340', 'cp210', 'ftdi']):
-                print(f"Arduino 발견: {port.device} - {port.description}")
+            # Arduino 관련 키워드 확인 (description 또는 hwid에서)
+            search_text = (port.description + " " + port.hwid).lower()
+            if any(keyword in search_text 
+                   for keyword in ['arduino', 'ch340', 'cp210', 'ftdi', '2341:', 'acm']):
+                print(f"Arduino 발견: {port.device} - {port.description} [{port.hwid}]")
                 return port.device
         return None
     
@@ -92,7 +94,7 @@ class TSL1401Viewer:
         """시리얼 포트에서 데이터 읽기"""
         if self.serial_port and self.serial_port.in_waiting:
             try:
-                line = self.serial_port.readline().decode('utf-8').strip()
+                line = self.serial_port.readline().decode('utf-8', errors='ignore').strip()
                 
                 # CSV 형식 데이터 파싱
                 if ',' in line and not line.startswith('Sharpness'):
@@ -173,8 +175,11 @@ class TSL1401Viewer:
     
     def close(self):
         """리소스 정리"""
-        if hasattr(self, 'ani'):
-            self.ani.event_source.stop()
+        try:
+            if self.ani is not None:
+                self.ani.event_source.stop()
+        except:
+            pass  # 이미 종료된 경우 무시
         if self.serial_port:
             self.serial_port.close()
             print("시리얼 포트가 닫혔습니다.")
