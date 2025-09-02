@@ -1,5 +1,6 @@
 #include <Arduino_FreeRTOS.h>
 #include <avr/io.h>  // AVR 레지스터 정의 포함
+#include <avr/wdt.h>  // Watchdog Timer 헤더
 #include <semphr.h>
 
 #define TSL1401_CLK 11   // TSL1401 클럭 핀
@@ -73,6 +74,8 @@ void send_pixel_data()
 
 void setup()
 {
+    // WDT 초기 비활성화 (초기화 중 리셋 방지)
+    wdt_disable();
 
     Serial.begin(115200);
     while (!Serial)
@@ -111,6 +114,9 @@ void setup()
                     1,  // 우선순위
                     NULL);
 
+        // WDT 활성화 (2초 타임아웃)
+        wdt_enable(WDTO_2S);
+        
         // 태스크 스케줄러 시작
         vTaskStartScheduler();
     }
@@ -131,6 +137,9 @@ void TaskCamera(void* pvParameters)
 
     for (;;)
     {
+        // WDT 리셋 (태스크가 정상 동작 중임을 알림)
+        wdt_reset();
+        
         // 카메라 데이터 읽기
         read_TSL1401_camera();
 
@@ -146,7 +155,7 @@ void TaskCamera(void* pvParameters)
         // 255: 모든 픽셀이 그대로 (임계값 무시)
         line_threshold(255);  // 255로 설정 (임계값 처리 사실상 비활성화)
 
-        // 정확한 50Hz 주기 유지
+        // 정확한 25Hz 주기 유지
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
 }
@@ -162,6 +171,9 @@ void TaskSerial(void* pvParameters)
 
     for (;;)
     {
+        // WDT 리셋 (태스크가 정상 동작 중임을 알림)
+        wdt_reset();
+        
         // 100ms마다 픽셀 데이터 전송
         if (xSemaphoreTake(xDataSemaphore, pdMS_TO_TICKS(10)) == pdTRUE)
         {
